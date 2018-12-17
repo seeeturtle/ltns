@@ -32,6 +32,13 @@ class LtnsKeyword:
             lambda x, y: 1/2*(x+y)*(x+y+1)+y,
             (ord(c) for c in self.value))
 
-# class LtnsString(str):
-#     def __new__(cls, s, **kwargs):
-#         return super(LtnsString, cls).__new__(cls, s, **kwargs)
+class LtnsString(str):
+    def __new__(cls, s, **kwargs):
+        return super(LtnsString, cls).__new__(cls, s, **kwargs)
+
+class LtnsSymbol:
+    def __init__(self, name):
+        self.name = name
+
+    def __hash__(self):
+        return self.name

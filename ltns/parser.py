@@ -3,7 +3,12 @@ from collections import namedtuple
 from rply import ParserGenerator
 
 from lexer import lexer
-from model import LtnsElement, LtnsKeyword
+from models import (
+    LtnsElement,
+    LtnsKeyword,
+    LtnsSymbol,
+    LtnsString,
+)
 
 
 pg = ParserGenerator([rule.name for rule in lexer.rules] + ['end$'])
@@ -43,30 +48,30 @@ def empty_element(p):
 
 @pg.production("start_tag : LANGLE identifier attributes RANGLE")
 def start_tag(p):
-    return tag(p[1], p[2])
+    return tag(p[1].name, p[2])
 
 @pg.production("start_tag : LANGLE identifier RANGLE")
 def start_tag_without_attributes(p):
-    return tag(p[1], {})
+    return tag(p[1].name, {})
 
 @pg.production("attributes : identifier EQUAL term attributes")
 def attributes(p):
-    d = {p[0]: p[2]}
+    d = {p[0].name: p[2]}
     d.update(p[3])
 
     return d
 
 @pg.production("attributes : identifier EQUAL term")
 def attributes_one(p):
-    return {p[0]: p[2]}
+    return {p[0].name: p[2]}
 
 @pg.production("end_tag : LSLASHANGLE identifier RANGLE")
 def end_tag(p):
-    return tag(p[1], None)
+    return tag(p[1].name, None)
 
 @pg.production("empty_tag : LANGLE identifier attributes RSLASHANGLE")
 def empty_tag(p):
-    return tag(p[1], p[2])
+    return tag(p[1].name, p[2])
 
 @pg.production("identifier : IDENTIFIER")
 def identifier(p):
@@ -90,11 +95,11 @@ def identifier(p):
     except ValueError:
         pass
 
-    return p[0].getstr()
+    return LtnsSymbol(p[0].getstr())
 
 @pg.production("string : STRING")
 def string(p):
-    return p[0].getstr()
+    return LtnsString(p[0].getstr())
 
 @pg.error
 def error_handler(token):
