@@ -12,12 +12,12 @@ lg.add('RSQUARE', r'\]')
 lg.add('EQUAL', r'=')
 
 lg.add('STRING', r'''(?x)
-("r")?
+(r)?
 "
-(.)*
+[^"]*
 "
 ''')
-lg.add('IDENTIFIER', r'[^<>\[\]{}=/\s]+')
+lg.add('IDENTIFIER', r'[^<>\[\]{}=/\s"]+')
 
 lg.ignore(r'<!--(.|\s)*-->')
 lg.ignore(r'\s+')
