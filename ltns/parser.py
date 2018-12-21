@@ -8,12 +8,15 @@ from models import (
     LtnsKeyword,
     LtnsSymbol,
     LtnsString,
+    LtnsInteger,
+    LtnsFloat,
+    LtnsComplex,
 )
 
 
 pg = ParserGenerator([rule.name for rule in lexer.rules] + ['end$'])
 
-tag = namedtuple('tag', ('name', 'attributes'))
+tag = namedtuple('tag', ('name', 'attributes', 'token'))
 
 @pg.production("main : list_contents")
 def main(p):
@@ -39,20 +42,20 @@ def term(p):
 
 @pg.production("element : start_tag list_contents end_tag")
 def element(p):
-    return LtnsElement(p[0].name, attributes=p[0].attributes, childs=p[1])
+    return LtnsElement(p[0].name, p[0].token, attributes=p[0].attributes, childs=p[1])
 
 @pg.production("element : start_tag end_tag")
 @pg.production("element : empty_tag")
 def empty_element(p):
-    return LtnsElement(p[0].name, attributes=p[0].attributes)
+    return LtnsElement(p[0].name, p[0].token, attributes=p[0].attributes)
 
 @pg.production("start_tag : LANGLE identifier attributes RANGLE")
 def start_tag(p):
-    return tag(p[1].name, p[2])
+    return tag(p[1].name, p[2], p[0])
 
 @pg.production("start_tag : LANGLE identifier RANGLE")
 def start_tag_without_attributes(p):
-    return tag(p[1].name, {})
+    return tag(p[1].name, {}, p[0])
 
 @pg.production("attributes : identifier EQUAL term attributes")
 def attributes(p):
@@ -67,39 +70,52 @@ def attributes_one(p):
 
 @pg.production("end_tag : LSLASHANGLE identifier RANGLE")
 def end_tag(p):
-    return tag(p[1].name, None)
+    return tag(p[1].name, None, None)
 
 @pg.production("empty_tag : LANGLE identifier attributes RSLASHANGLE")
 def empty_tag(p):
-    return tag(p[1].name, p[2])
+    return tag(p[1].name, p[2], p[0])
 
 @pg.production("identifier : IDENTIFIER")
 def identifier(p):
+    s = p[0].getstr()
+
+    # get base of integer
+    prefix_base = {
+        '0b': 2,
+        '0o': 8,
+        '0x': 16,
+    }
+
+    base = 10
+    for prefix, _base in prefix_base.items():
+        if s.startswith(prefix):
+            base = _base
     try:
-        return int(p[0].getstr())
+        return LtnsInteger(p[0], base=base)
     except ValueError:
         pass
 
     try:
-        return float(p[0].getstr())
+        return LtnsFloat(p[0])
     except ValueError:
         pass
 
     try:
-        return complex(p[0].getstr())
+        return LtnsComplex(p[0])
     except ValueError:
         pass
 
     try:
-        return LtnsKeyword(p[0].getstr())
+        return LtnsKeyword(p[0])
     except ValueError:
         pass
 
-    return LtnsSymbol(p[0].getstr())
+    return LtnsSymbol(p[0])
 
 @pg.production("string : STRING")
 def string(p):
-    return LtnsString(p[0].getstr())
+    return LtnsString(p[0])
 
 @pg.error
 def error_handler(token):
