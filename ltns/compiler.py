@@ -11,9 +11,6 @@ def model(node_type):
     return decorator
 
 class LtnsCompiler:
-    def __init__(self, source):
-        self.source = source
-
     def compile(self, node):
         return _model_compiler[type(node)](self, node)
 
