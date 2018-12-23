@@ -1,6 +1,14 @@
 import ast
 
-from models import LtnsElement, LtnsKeyword, LtnsString, LtnsSymbol
+from .models import (
+    LtnsElement,
+    LtnsKeyword,
+    LtnsString,
+    LtnsSymbol,
+    LtnsInteger,
+    LtnsFloat,
+    LtnsComplex,
+)
 
 _model_compiler = {}
 
@@ -34,3 +42,22 @@ class LtnsCompiler:
     @model(LtnsString)
     def compile_string(self, string):
         return ast.Str(str(string))
+
+    @model(LtnsKeyword)
+    def compile_keyword(self, keyword):
+        return ast.Call(
+            func = ast.Name(id='LtnsKeyword', ctx=ast.Load()),
+            args=[self.compile(LtnsString(keyword.value))],
+        )
+
+    @model(LtnsInteger)
+    def compile_integer(self, integer):
+        return ast.Num(int(integer))
+
+    @model(LtnsFloat)
+    def compile_float_number(self, float_number):
+        return ast.Num(float(float_number))
+
+    @model(LtnsComplex)
+    def compile_complex_number(self, complex_number):
+        return ast.Num(complex(complex_number))
