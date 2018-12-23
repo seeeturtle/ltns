@@ -11,6 +11,7 @@ from .models import (
     LtnsInteger,
     LtnsFloat,
     LtnsComplex,
+    LtnsList,
 )
 
 
@@ -37,6 +38,7 @@ def list_contents_term(p):
 @pg.production("term : element")
 @pg.production("term : identifier")
 @pg.production("term : string")
+@pg.production("term : list")
 def term(p):
     return p[0]
 
@@ -119,6 +121,10 @@ def identifier(p):
 @pg.production("string : STRING")
 def string(p):
     return LtnsString(p.value[1:-1])
+
+@pg.production("list : LSQUARE list_contents RSQUARE")
+def list(p):
+    return LtnsList(p[1])
 
 @pg.error
 def error_handler(token):

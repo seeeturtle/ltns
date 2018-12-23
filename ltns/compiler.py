@@ -8,6 +8,7 @@ from .models import (
     LtnsInteger,
     LtnsFloat,
     LtnsComplex,
+    LtnsList,
 )
 
 _model_compiler = {}
@@ -61,3 +62,10 @@ class LtnsCompiler:
     @model(LtnsComplex)
     def compile_complex_number(self, complex_number):
         return ast.Num(complex(complex_number))
+
+    @model(LtnsList)
+    def comiler_list(self, ltns_list):
+        return ast.List(
+            elts=[self.compile(e) for e in ltns_list],
+            ctx=ast.Load(),
+        )

@@ -38,3 +38,7 @@ class LtnsString(str):
 class LtnsSymbol:
     def __init__(self, name, **kwargs):
         self.name = name
+
+class LtnsList(list):
+    def __new__(cls, elements, **kwargs):
+        return super().__new__(cls, elements, **kwargs)

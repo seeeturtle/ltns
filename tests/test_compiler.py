@@ -7,6 +7,7 @@ from ltns.models import (
     LtnsInteger,
     LtnsFloat,
     LtnsComplex,
+    LtnsList,
 )
 
 import ast
@@ -65,3 +66,24 @@ class TestCompiler:
 
         assert isinstance(result, ast.Num)
         assert result.n == 1+2j
+
+    def test_compile_list(self):
+        ltns_list = LtnsList([
+            LtnsInteger(1),
+            LtnsList([LtnsString('nested')]),
+        ])
+        result = LtnsCompiler().compile(ltns_list)
+
+        assert isinstance(result, ast.List)
+        assert isinstance(result.ctx, ast.Load)
+        assert len(result.elts) == 2
+
+        assert isinstance(result.elts[0], ast.Num)
+        assert result.elts[0].n == 1
+
+        assert isinstance(result.elts[1], ast.List)
+        assert isinstance(result.elts[1].ctx, ast.Load)
+        assert len(result.elts[1].elts) == 1
+
+        assert isinstance(result.elts[1].elts[0], ast.Str)
+        assert result.elts[1].elts[0].s == 'nested'
