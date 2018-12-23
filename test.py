@@ -1,8 +1,8 @@
-from compiler import LtnsCompiler
-from parser import parser
-from lexer import lexer
-from pprint import pprint
 import ast
+
+from ltns.compiler import LtnsCompiler
+from ltns.parser import parser
+from ltns.lexer import lexer
 
 test = '''
 <print>"Hello World!"</print>
@@ -10,7 +10,7 @@ test = '''
 
 source = parser.parse(lexer.lex(test))
 
-compiler = LtnsCompiler(source)
+compiler = LtnsCompiler()
 
 result = compiler.compile(source[0])
 
