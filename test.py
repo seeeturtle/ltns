@@ -1,19 +1,19 @@
 import ast
 
-from ltns.compiler import LtnsCompiler
-from ltns.parser import parser
-from ltns.lexer import lexer
+from ltns.compiler import ltns_compile, ltns_parse
 
-test = '''
-<print>"Hello World!"</print>
-'''
+code = ltns_compile(ltns_parse('''
+<if>
+  True
+  <do>
+    <print end="">"This is: "</print>
+    <print>"True!"</print>
+  </do>
+  <do>
+    <print end="">"This is: "</print>
+    <print>"False!"</print>
+  </do>
+</if>
+'''))
 
-source = parser.parse(lexer.lex(test))
-
-compiler = LtnsCompiler()
-
-result = compiler.compile(source[0])
-
-result = ast.fix_missing_locations(result)
-
-eval(compile(ast.Expression(body=result), '<test>', 'eval'))
+exec(code)
