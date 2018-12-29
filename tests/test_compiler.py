@@ -1,4 +1,5 @@
 from ltns.compiler import LtnsCompiler
+from ltns.compiler import ltns_parse
 from ltns.models import (
     LtnsElement,
     LtnsSymbol,
@@ -12,6 +13,8 @@ from ltns.models import (
 
 import ast
 
+def compile(tree):
+    return LtnsCompiler().compile(tree)
 
 class TestCompiler:
     def test_compile_element(self):
@@ -19,64 +22,96 @@ class TestCompiler:
             'print',
             childs=[LtnsString('Hello World!')]
         )
-        result = LtnsCompiler().compile(element)
+        result = compile(element)
+        expr = result.expr
 
-        assert isinstance(result, ast.Call)
-        assert result.func.id == 'print'
-        assert len(result.args) == 1
-        assert isinstance(result.args[0], ast.Str)
-        assert result.args[0].s == 'Hello World!'
+        assert not result.stmts
+
+        assert isinstance(expr, ast.Call)
+        assert expr.func.id == 'print'
+        assert len(expr.args) == 1
+        assert isinstance(expr.args[0], ast.Str)
+        assert expr.args[0].s == 'Hello World!'
 
     def test_compile_symbol(self):
         symbol = LtnsSymbol('hello')
-        result = LtnsCompiler().compile(symbol)
+        result = compile(symbol)
+        expr = result.expr
 
-        assert isinstance(result, ast.Name)
-        assert result.id == 'hello'
-        assert isinstance(result.ctx, ast.Load)
+        assert not result.stmts
+
+        assert isinstance(expr, ast.Name)
+        assert expr.id == 'hello'
+        assert isinstance(expr.ctx, ast.Load)
 
     def test_compile_keyword(self):
         keyword = LtnsKeyword('hello')
-        result = LtnsCompiler().compile(keyword)
+        result = compile(keyword)
+        expr = result.expr
 
-        assert isinstance(result, ast.Call)
-        assert isinstance(result.func, ast.Name)
-        assert result.func.id == 'LtnsKeyword'
-        assert len(result.args) == 1
-        assert isinstance(result.args[0], ast.Str)
-        assert result.args[0].s == 'hello'
+        assert not result.stmts
+
+        assert isinstance(expr, ast.Call)
+        assert isinstance(expr.func, ast.Name)
+        assert expr.func.id == 'LtnsKeyword'
+        assert len(expr.args) == 1
+        assert isinstance(expr.args[0], ast.Str)
+        assert expr.args[0].s == 'hello'
 
     def test_compile_integer(self):
         integer = LtnsInteger(1)
-        result = LtnsCompiler().compile(integer)
+        result = compile(integer)
+        expr = result.expr
 
-        assert isinstance(result, ast.Num)
-        assert result.n == 1
+        assert not result.stmts
+
+        assert isinstance(expr, ast.Num)
+        assert expr.n == 1
 
     def test_compile_float(self):
         float_number = LtnsFloat(1.1)
-        result = LtnsCompiler().compile(float_number)
+        result = compile(float_number)
+        expr = result.expr
 
-        assert isinstance(result, ast.Num)
-        assert result.n == 1.1
+        assert not result.stmts
+
+        assert isinstance(expr, ast.Num)
+        assert expr.n == 1.1
 
     def test_compile_complex(self):
         complex_number = LtnsComplex(1+2j)
-        result = LtnsCompiler().compile(complex_number)
+        result = compile(complex_number)
+        expr = result.expr
 
-        assert isinstance(result, ast.Num)
-        assert result.n == 1+2j
+        assert not result.stmts
+
+        assert isinstance(expr, ast.Num)
+        assert expr.n == 1+2j
 
     def test_compile_list(self):
         ltns_list = LtnsList([
             LtnsInteger(1),
             LtnsList([LtnsString('nested')]),
         ])
-        result = LtnsCompiler().compile(ltns_list)
+        result = compile(ltns_list)
+        expr = result.expr
 
-        assert isinstance(result, ast.List)
-        assert isinstance(result.ctx, ast.Load)
-        assert len(result.elts) == 2
+        assert not result.stmts
+
+        assert isinstance(expr, ast.List)
+        assert isinstance(expr.ctx, ast.Load)
+        assert len(expr.elts) == 2
+
+        assert isinstance(expr.elts[0], ast.Num)
+        assert expr.elts[0].n == 1
+
+        assert isinstance(expr.elts[1], ast.List)
+        assert isinstance(expr.elts[1].ctx, ast.Load)
+        assert len(expr.elts[1].elts) == 1
+
+        assert isinstance(expr.elts[1].elts[0], ast.Str)
+        assert expr.elts[1].elts[0].s == 'nested'
+
 
         assert isinstance(result.elts[0], ast.Num)
         assert result.elts[0].n == 1
