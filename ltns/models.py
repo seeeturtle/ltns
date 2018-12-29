@@ -19,25 +19,17 @@ class LtnsComplex(complex):
     def __new__(cls, n, **kwargs):
         return super().__new__(cls, n, **kwargs)
 
-class LtnsKeyword:
-    def __init__(self, name, **kwargs):
-        self.value = name
-
-    def __eq__(self, other):
-        return self.value == other.value
-
-    def __hash__(self):
-        return reduce(
-            lambda x, y: 1/2*(x+y)*(x+y+1)+y,
-            (ord(c) for c in self.value))
+class LtnsKeyword(str):
+    def __new__(cls, value, **kwargs):
+        return super().__new__(cls, value, **kwargs)
 
 class LtnsString(str):
     def __new__(cls, s, **kwargs):
         return super().__new__(cls, s, **kwargs)
 
-class LtnsSymbol:
-    def __init__(self, name, **kwargs):
-        self.name = name
+class LtnsSymbol(str):
+    def __new__(cls, name, **kwargs):
+        return super().__new__(cls, name, **kwargs)
 
 class LtnsList(list):
     def __new__(cls, elements, **kwargs):

@@ -53,30 +53,30 @@ def empty_element(p):
 
 @pg.production("start_tag : LANGLE identifier attributes RANGLE")
 def start_tag(p):
-    return tag(p[1].name, p[2], p[0].source_pos.lineno, p[0].source_pos.colno)
+    return tag(p[1], p[2], p[0].source_pos.lineno, p[0].source_pos.colno)
 
 @pg.production("start_tag : LANGLE identifier RANGLE")
 def start_tag_without_attributes(p):
-    return tag(p[1].name, {}, p[0].source_pos.lineno, p[0].source_pos.colno)
+    return tag(p[1], {}, p[0].source_pos.lineno, p[0].source_pos.colno)
 
 @pg.production("attributes : identifier EQUAL term attributes")
 def attributes(p):
-    d = {p[0].name: p[2]}
+    d = {p[0]: p[2]}
     d.update(p[3])
 
     return d
 
 @pg.production("attributes : identifier EQUAL term")
 def attributes_one(p):
-    return {p[0].name: p[2]}
+    return {p[0]: p[2]}
 
 @pg.production("end_tag : LSLASHANGLE identifier RANGLE")
 def end_tag(p):
-    return tag(p[1].name, None, None, None)
+    return tag(p[1], None, None, None)
 
 @pg.production("empty_tag : LANGLE identifier attributes RSLASHANGLE")
 def empty_tag(p):
-    return tag(p[1].name, p[2], p[0].source_pos.lineno, p[0].source_pos.colno)
+    return tag(p[1], p[2], p[0].source_pos.lineno, p[0].source_pos.colno)
 
 @pg.production("identifier : IDENTIFIER")
 def identifier(p):
@@ -120,7 +120,7 @@ def identifier(p):
 
 @pg.production("string : STRING")
 def string(p):
-    return LtnsString(p.value[1:-1])
+    return LtnsString(p[0].value[1:-1])
 
 @pg.production("list : LSQUARE list_contents RSQUARE")
 def list(p):
