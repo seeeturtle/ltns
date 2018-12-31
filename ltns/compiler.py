@@ -1,4 +1,5 @@
 import ast
+from functools import partial
 
 from .lexer import lexer
 from .parser import parser
@@ -60,20 +61,54 @@ _special_form_compiler = {}
 
 def special(name, args=['name', 'childs', 'attrs']):
     def decorator(f):
-        _special_form_compiler[name] = (f, args)
+        _special_form_compiler[name] = f
         return f
     return decorator
 
 class LtnsCompiler:
-    _temp = 0
-
     def _temp_func_name(self):
+        if not hasattr(self, '_temp'):
+            self._temp = 0
         self._temp += 1
         return f'_temp_func_{self._temp}'
 
     def _temp_var_name(self):
+        if not hasattr(self, '_temp'):
+            self._temp = 0
         self._temp += 1
         return f'_temp_var_{self._temp}'
+
+    def _compile_branch(self, branch):
+        result = Result()
+
+        for x in branch[:-1]:
+            res = self.compile(x)
+            result.stmts += res.stmts
+            result.stmts += [res.expr_statement]
+
+        res = self.compile(branch[-1])
+        result.stmts += res.stmts
+        result.expr = res.expr
+
+        return result
+
+    def _compile_args(self, args, kwargs):
+        for i, arg in enumerate(args):
+            if arg == '&':
+                vararg = ast.arg(str(args[i+1], None), None)
+                posarg = args[:i]
+        else:
+            vararg = None
+            posarg = args
+
+        return ast.arguments(
+            args=[ast.arg(str(x), None) for x in posarg],
+            vararg=vararg,
+            kwonlyargs=[ast.arg(str(x), None) for x in kwargs],
+            kwarg=None,
+            defaults=[],
+            kw_defaults=list(kwargs.values()),
+        )
 
     def compile(self, node):
         return _model_compiler[type(node)](self, node)
@@ -81,16 +116,9 @@ class LtnsCompiler:
     @model(LtnsElement)
     def compile_element(self, element):
         if element.name in _special_form_compiler:
-            sf, args = _special_form_compiler[element.name]
-
-            data = {
-                'name': element.name,
-                'childs': element.childs,
-                'attrs': element.attributes,
-            }
-            args = [data[arg] for arg in args]
-
-            return sf(self, *args)
+            return _special_form_compiler[element.name](
+                self, *element.childs, **element.attributes
+            )
 
         func = ast.parse(element.name, mode='eval').body # TODO: handle exception of parsing
 
@@ -160,21 +188,9 @@ class LtnsCompiler:
 
         return result
 
-    @special('do', ['childs'])
-    def compile_do(self, childs):
-        result = Result()
-
-        childs = [self.compile(child) for child in childs]
-
-        for child in childs[:-1]:
-            result.stmts += child.stmts
-            result.stmts.append(child.expr_statement)
-
-        expr = childs[-1].expr
-        result.stmts += childs[-1].stmts
-        result.expr = expr
-
-        return result
+    @special('do')
+    def compile_do(self, *body):
+        return self._compile_branch(body)
 
     name_op = {
         'add*': ast.Add(),
@@ -190,14 +206,14 @@ class LtnsCompiler:
         'bitand': ast.BitAnd(),
     }
 
-    def compile_bin_op(self, name, childs):
+    def compile_bin_op(self, a, b, name):
         result = Result()
 
-        left = self.compile(childs[0])
+        left = self.compile(a)
         result.stmts += left.stmts
         left = left.expr
 
-        right = self.compile(childs[1])
+        right = self.compile(b)
         result.stmts += right.stmts
         right = right.expr
 
@@ -207,21 +223,20 @@ class LtnsCompiler:
         return result
 
     for name in name_op:
-        _special_form_compiler[name] = (compile_bin_op, ['name', 'childs'])
+        _special_form_compiler[name] = partial(compile_bin_op, name=name)
 
-    @special('if', ['childs'])
-    def compile_if(self, childs):
+    @special('if')
+    def compile_if(self, test, then, orelse=None):
         result = Result()
 
-        pred = self.compile(childs[0])
+        pred = self.compile(test)
         result.stmts += pred.stmts
 
-        then_body = self.compile(childs[1])
+        then_body = self.compile(then)
 
-        try:
-            else_body = self.compile(childs[2])
-        except IndexError:
-            else_body = None
+        else_body = None
+        if orelse is not None:
+            else_body = self.compile(orelse)
 
         if then_body.stmts or else_body.stmts:
             temp_func_name = self._temp_func_name()
@@ -278,3 +293,25 @@ class LtnsCompiler:
             )
 
             return result
+
+    @special('fn*')
+    def compile_fn(self, args, *body, **kwargs):
+        result = Result()
+
+        body = self._compile_branch(body)
+        args = self._compile_args(args, kwargs)
+
+        if body.stmts:
+            fdef = ast.FunctionDef()
+            fdef.name = self._temp_func_name()
+            fdef.args = args
+            fdef.body = body.stmts + [ast.Return(body.expr)]
+            fdef.decorator_list = []
+            fdef.returns = None
+
+            result.stmts += [fdef]
+            result.expr = ast.Name(id=fdef.name, ctx=ast.Load())
+        else:
+            result.expr = ast.Lambda(args=args, body=body.expr)
+
+        return result

@@ -19,6 +19,7 @@ def compile(tree):
 
 class TestCompiler:
     def test_compile_element(self):
+        """<print>"Hello World!"</print>"""
         element = LtnsElement(
             'print',
             childs=[LtnsString('Hello World!')]
@@ -33,6 +34,7 @@ class TestCompiler:
         assert expr.args[0].s == 'Hello World!'
 
     def test_compile_symbol(self):
+        """hello"""
         symbol = LtnsSymbol('hello')
         result = compile(symbol)
         expr = result.expr
@@ -43,6 +45,7 @@ class TestCompiler:
         assert isinstance(expr.ctx, ast.Load)
 
     def test_compile_keyword(self):
+        """:hello"""
         keyword = LtnsKeyword('hello')
         result = compile(keyword)
         expr = result.expr
@@ -54,6 +57,7 @@ class TestCompiler:
         assert expr.args[0].s == 'hello'
 
     def test_compile_integer(self):
+        """1"""
         integer = LtnsInteger(1)
         result = compile(integer)
         expr = result.expr
@@ -63,6 +67,7 @@ class TestCompiler:
         assert expr.n == 1
 
     def test_compile_float(self):
+        """1.1"""
         float_number = LtnsFloat(1.1)
         result = compile(float_number)
         expr = result.expr
@@ -72,6 +77,7 @@ class TestCompiler:
         assert expr.n == 1.1
 
     def test_compile_complex(self):
+        """1+2j"""
         complex_number = LtnsComplex(1+2j)
         result = compile(complex_number)
         expr = result.expr
@@ -81,6 +87,7 @@ class TestCompiler:
         assert expr.n == 1+2j
 
     def test_compile_list(self):
+        """[1 [1 "nested"]]"""
         ltns_list = LtnsList([
             LtnsInteger(1),
             LtnsList([LtnsString('nested')]),
@@ -103,6 +110,7 @@ class TestCompiler:
         assert expr.elts[1].elts[0].s == 'nested'
 
     def test_bin_op(self):
+        """<add*>1 2</add*>"""
         bin_op = LtnsElement(
             name='add*',
             childs=[
@@ -122,6 +130,12 @@ class TestCompiler:
         assert expr.right.n == 2
 
     def test_do(self):
+        """
+        <do>
+          <print>"Hello"</print>
+          <print>"World!"</print>
+        </do>
+        """
         do = LtnsElement(
             name='do',
             childs=[
@@ -145,6 +159,7 @@ class TestCompiler:
         assert expr.args[0].s == 'World!'
 
     def test_if_without_stmts(self):
+        """<if>True :true :false</if>"""
         tree = LtnsElement(
             name='if',
             childs=[
@@ -165,6 +180,13 @@ class TestCompiler:
         assert expr.orelse.args[0].s == 'false'
 
     def test_if_with_stmts(self):
+        """
+        <if>
+          True
+          <do>1 2</do>
+          <do>3 4</do>
+        </if>
+        """
         tree = LtnsElement(
             name='if',
             childs=[
@@ -203,3 +225,18 @@ class TestCompiler:
         assert stmts[0].body[1].value.id == '_temp_var_2'
 
         assert expr.func.id == '_temp_func_1'
+
+    def test_fn_without_stmts(self):
+        """<fn*>[x] x</fn*>"""
+        fn = LtnsElement(
+            name='fn*',
+            childs=[
+                LtnsList([LtnsSymbol('x')]),
+                LtnsSymbol('x'),
+            ],
+        )
+        result = compile(fn)
+
+        assert not result.stmts
+        assert result.expr.args.args[0].arg == 'x'
+        assert result.expr.body.id == 'x'
