@@ -315,3 +315,27 @@ class LtnsCompiler:
             result.expr = ast.Lambda(args=args, body=body.expr)
 
         return result
+
+    @special('def')
+    def compile_def(self, *name_value, **def_dict):
+        if len(name_value) % 2 != 0:
+            raise ValueError("length of argument list should be even")
+
+        result = Result()
+
+        for name, value in def_dict.items():
+            name = LtnsSymbol(name)
+            name_value = name_value + (name, value)
+
+        for i, name in enumerate(name_value[::2]):
+            name = ast.Name(id=str(name), ctx=ast.Store())
+            value = self.compile(name_value[i*2+1])
+
+            result.stmts += [ast.Assign(
+                targets=[name],
+                value=value.expr,
+            )]
+
+        result.expr = ast.Name(id='None', ctx=ast.Load())
+
+        return result

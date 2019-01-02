@@ -1,4 +1,4 @@
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 
 from rply import ParserGenerator
 
@@ -61,7 +61,7 @@ def start_tag_without_attributes(p):
 
 @pg.production("attributes : identifier EQUAL term attributes")
 def attributes(p):
-    d = {p[0]: p[2]}
+    d = OrderedDict([(p[0], p[2])])
     d.update(p[3])
 
     return d
